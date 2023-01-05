@@ -1,0 +1,4 @@
+Unit: milliseconds
+ expr      min       lq     mean   median       uq       max neval
+ grid 3.795665 4.191679 5.767264 4.350984 4.501209 352.98953  5000
+ hash 7.329335 7.671712 8.652534 8.805398 9.443322  58.45681  5000

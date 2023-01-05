@@ -38,7 +38,7 @@ mat poly_mat(const vec& mu, const vec& nu){
             M.at(mm,nn) = lam;
         }
         if(mm % 100 == 0){
-            Rcout << "mu: " << mm << "done." << std::endl;
+            Rcout << "mu: " << mm << " done." << std::endl;
         }
     }
 
