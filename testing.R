@@ -35,13 +35,8 @@ poly_solve(1,1.01); poly_solve(1.92,.2); poly_solve(.2,1.24)
 
 # Functions to lookup from grid and hash ----------------------------------
 grid.lookup <- function(mu, nu){
-    l <- length(mu); k <- length(nu)
-    lam <- numeric(l)
     mus <- round(mu, 2)*100; nus <- round(nu, 2) * 100
-    for(i in 1:l){
-        lam[i] <- M[mus[i], nus[i]]
-    }
-    lam
+    M[mus,nus]
 }
 
 grid.lookup2 <- function(mu, nu){
@@ -52,20 +47,23 @@ grid.lookup2 <- function(mu, nu){
 }
 
 hash.lookup <- function(mu, nu){
+    # Not sure which of these we want to do.
     lookups <- paste0(.f(mu), ',', .f(nu))
+    # lookups <- paste0(.f(mu), ',',
+    #                   rep(.f(nu), each = length(mu)))
     HH[[lookups]]
 }
-grid.lookup(seq(.55,1,.01), seq(1, 1.45, .01))
-hash.lookup(seq(.55,1,.01), seq(1, 1.45, .01)) # arbitrary e.g.
-
+a <- grid.lookup(seq(.55,1,.01), seq(1, 1.45, .01))
+b <- hash.lookup(seq(.55,1,.01), seq(1, 1.45, .01)) # arbitrary e.g.
+dim(a); dim(b)
 
 # Benchmarking ------------------------------------------------------------
 # Create a scenario where we have N lookups to do (which are random numbers).
 library(microbenchmark)
 # Function
-benchN <- function(N, times = 1000){
-    mus <- runif(N, 0.02, 9.99)
-    nus <- runif(N, 0.02, 9.99)
+benchN <- function(Nmu, Nnu, times = 1000){
+    mus <- runif(Nmu, 0.02, 9.99)
+    nus <- runif(Nnu, 0.02, 9.99)
     bench <- microbenchmark(
         `grid` = {
             G <- grid.lookup(mus, nus)
@@ -77,5 +75,5 @@ benchN <- function(N, times = 1000){
     )
     bench
 }
-b <- benchN(1000, 1000)
-
+benchN(50000, 1, 1)
+benchN(500, 2, 1000)
