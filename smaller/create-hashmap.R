@@ -10,16 +10,28 @@ mat2hash <- function(mat){
 }
 HH <- mat2hash(M)
 
+# Update hashmap ----------------------------------------------------------
+# Maybe a little pointless? -->
+# Check if current hashmap contains mus,nus.
+check.current.hash <- function(keys) HH$has_keys(keys)
+# Insert new values.
+update.hash <- function(new.mus, new.nus){
+    HH$insert(gen.key(new.mus, new.nus), c(poly_mat(new.mus, new.nus)))
+    HH <<- HH
+}
+
 # Lookup hashmap ----------------------------------------------------------
 gen.key <- function(mu, nu) paste0(.f(mu), ',', .f(nu))
-
 hash.lookup <- function(mu, nu){
     keys <- gen.key(mu, nu)
-    HH[[keys]]
+    check <- check.current.hash(keys)
+    if(!all(check)){
+        keys
+    }else{
+        out <- HH[[keys]]
+    }
+
+    out
 }
 
-# Update hashmap ----------------------------------------------------------
-# May be pointless?
-check.current.hash <- function(H, mu, nu){
 
-}
