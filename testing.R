@@ -20,6 +20,12 @@ mat2hash <- function(mat){
 }
 HH <- mat2hash(M)
 
+# Second way --> Looking up a double faster than converting to string first?
+mat2hash_b <- function(mus, nus, M){
+    keys <- outer(mus, nus, '*')
+    hashmap(c(keys), c(M))
+}
+
 # Seems to work quite well!
 HH[['1.52,1.20']] # poly_solve(1.52, 1.20)
 HH[['0.01,0.01']] # poly_solve(0.01, 0.01)
@@ -29,7 +35,7 @@ poly_solve(1,1.01); poly_solve(1.92,.2); poly_solve(.2,1.24)
 
 # Functions to lookup from grid and hash ----------------------------------
 grid.lookup <- function(mu, nu){
-    l <- length(mu)
+    l <- length(mu); k <- length(nu)
     lam <- numeric(l)
     mus <- round(mu, 2)*100; nus <- round(nu, 2) * 100
     for(i in 1:l){
@@ -37,6 +43,14 @@ grid.lookup <- function(mu, nu){
     }
     lam
 }
+
+grid.lookup2 <- function(mu, nu){
+    l <- length(mu); k <- length(nu)
+    lam <- numeric(l)
+    mus <- round(mu, 2)*100; nus <- round(nu, 2) * 100
+    M[mus,nus]
+}
+
 hash.lookup <- function(mu, nu){
     lookups <- paste0(.f(mu), ',', .f(nu))
     HH[[lookups]]
