@@ -23,7 +23,7 @@ get.indices <- function(this, f = rownames){
     match(this, parent)
 }
 
-grid.lookup <- function(mus, nus){
+grid.lookup <- function(mus, nus, update = FALSE){
     rmus <- .r(mus); rnus <- .r(nus)
     # Work out the indices of mus, nus to lookup
     mu.lookups <- get.indices(rmus)
@@ -42,12 +42,19 @@ grid.lookup <- function(mus, nus){
     if(length(w)){ # Lazy --> Assumes nu is scalar value (i.e. one for all...)
         rtn[w] <- mapply(function(i) poly_solve(mus[i], nus), i = w, SIMPLIFY = T)
 
-        # Lines to update...
-        # R <- as.numeric()
+        # Updating the matrix M.
+        if(update){
+            # If don't have this value of nu yet, and all values of mu were accounted for,
+            if(any(is.na(nu.lookups))){
+                # Then simply add column to end of this grid.
+                # Since we _match_ by column name, the order shouldn't matter at all.
+                newvals <- sapply(as.numeric(rownames(M)), poly_solve, nus)
+                M <<- cbind(M, newvals)
+                colnames(M)[ncol(M)] <<- .f(rnus)
+            }
+        }
     }
     rtn
-
-    # Some way to add these to grid?
 }
 
 # m2 <- runif(100, 0.98, 1.99); n2 <- runif(100, 1.22, 1.65)

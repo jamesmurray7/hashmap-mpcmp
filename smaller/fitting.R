@@ -5,11 +5,11 @@ library(hashmap)
 library(Rcpp)
 library(RcppArmadillo)
 library(mvtnorm)
+library(mpcmp)
 
 # Loose idea of how may fit using a hashmap.
-source('simData.R')
-data <- simData1()$data
-data$dum <- 1
+source('smaller/create-grid.R')
+source('smaller/create-hashmap.R')
 
 #### Function to extract some data summaries needed in updates
 summarydata <- function(y)
@@ -24,15 +24,14 @@ summarydata <- function(y)
          sum_y = sum_y)
 }
 
-source('smaller/create-grid.R')
-source('smaller/create-hashmap.R')
+fit <- function(simdata, N = 1e3, lookup = 'hashmap', CI = .95, verbose = TRUE, update.grid = T){
 
-fit <- function(simdata, N = 1e3, lookup = 'hashmap', CI = .95, verbose = TRUE){
-
-    if(lookup == 'hashmap') .lookup <- hash.lookup else .lookup <- grid.lookup
+    if(lookup == 'hashmap') .lookup <- hash.lookup else .lookup <- function(m,n,u) grid.lookup(m,n,update.grid)
 
     f <- suppressWarnings(glmmTMB::glmmTMB(y ~ x1+x2+x3+x4+x5+x6+x7+x8+x9+x10 - 1, data = simdata,
                                            disp = ~ 1, family = glmmTMB::compois()))
+
+    # f2 <- glm.cmp(y ~ . -1, data = simdata)
 
     X <- getME(f, 'X')
     y <- simdata$y
@@ -158,7 +157,7 @@ fit <- function(simdata, N = 1e3, lookup = 'hashmap', CI = .95, verbose = TRUE){
 
 # Below implies that as more grid lookups are done, hashmap becomes orders slower.
 a <- fit(data, CI = .5)
-b <- fit(data, lookup='grid', CI = .5)
+b <- fit(data, lookup='grid', CI = .5, update.grid = T)
 cat(sprintf("Hashmap: %.2fs, grid: %.2fs.\n", a$cpu_time, b$cpu_time))
 
 # A lot more draws
