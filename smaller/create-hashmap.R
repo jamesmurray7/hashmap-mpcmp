@@ -8,30 +8,20 @@ mat2hash <- function(mat){
     keys <- apply(expand.grid(R,C), 1, paste, collapse=',')
     hashmap(keys, lookup)
 }
-HH <- mat2hash(M)
-
-# Update hashmap ----------------------------------------------------------
-# Maybe a little pointless? -->
-# Check if current hashmap contains mus,nus.
-check.current.hash <- function(keys) HH$has_keys(keys)
-# Insert new values.
-update.hash <- function(new.mus, new.nus){
-    HH$insert(gen.key(new.mus, new.nus), c(poly_mat(new.mus, new.nus)))
-    HH <<- HH
-}
+# HH <- mat2hash(M)
 
 # Lookup hashmap ----------------------------------------------------------
 gen.key <- function(mu, nu) paste0(.f(mu), ',', .f(nu))
-hash.lookup <- function(mu, nu){
-    keys <- gen.key(mu, nu)
-    check <- check.current.hash(keys)
-    if(!all(check)){
-        keys
-    }else{
-        out <- HH[[keys]]
+# (Also updating new key pairs).
+hash.lookup <- function(mus, nus){
+    keys <- gen.key(mus, nus)
+    rtn <- HH[[keys]]
+    w <- which(is.na(rtn))
+    if(length(w)){ # Lazy --> Assumes nu is scalar value (i.e. one for all...)
+        rtn[w] <- mapply(function(i) poly_solve(mus[i], nus), i = w, SIMPLIFY = T)
+        HH$insert(keys[w], rtn[w])
     }
-
-    out
+    rtn
 }
 
 

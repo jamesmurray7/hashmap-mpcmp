@@ -11,9 +11,9 @@ generate.grid <- function(mus, nus){
 }
 
 # Short test
-m <- runif(100, 0.98, 1.99);  n <- runif(100, 1.22, 1.65)
-M <- generate.grid(seq(min(round(m, 2)), max(round(m, 2)), .01),
-                   seq(min(round(n, 2)), max(round(n, 2)), .01))
+# m <- runif(100, 0.98, 1.99);  n <- runif(100, 1.22, 1.65)
+# M <- generate.grid(seq(min(round(m, 2)), max(round(m, 2)), .01),
+#                    seq(min(round(n, 2)), max(round(n, 2)), .01))
 
 # Lookup ------------------------------------------------------------------
 .r <- function(x) round(x, 2)
@@ -24,30 +24,32 @@ get.indices <- function(this, f = rownames){
 }
 
 grid.lookup <- function(mus, nus){
-    mus <- unique(.r(mus)); nus <- unique(.r(nus))
+    rmus <- .r(mus); rnus <- .r(nus)
     # Work out the indices of mus, nus to lookup
-    mu.lookup <- unique(get.indices(mus))
-    nu.lookup <- unique(get.indices(nus, colnames))
+    mu.lookups <- get.indices(rmus)
+    nu.lookups <- get.indices(rnus, colnames)
 
-    out <- M[mu.lookup, nu.lookup]
+    rtn <- mapply(function(m, n){
+        if(!is.na(m * n)){
+            return(M[m, n])
+        }else{
+            return(NA)
+        }
+    }, m = mu.lookups, n = nu.lookups, SIMPLIFY = T)
 
-    # Above matrix generates some <NA> values...
-    missing.nu <- which(is.na(nu.lookup)); has.nu <- which(!is.na(nu.lookup))
-    missing.mu <- which(is.na(mu.lookup)); has.mu <- which(!is.na(mu.lookup))
-    if(length(missing.nu)){
-        missing.vals <- poly_mat(mus, nus[missing.nu])
-        out[, missing.nu] <- missing.vals
-        colnames(out)[missing.nu] <- .f(nus[missing.nu])
+    # Populate non-matching ones
+    w <- which(is.na(rtn))
+    if(length(w)){ # Lazy --> Assumes nu is scalar value (i.e. one for all...)
+        rtn[w] <- mapply(function(i) poly_solve(mus[i], nus), i = w, SIMPLIFY = T)
+
+        # Lines to update...
+        # R <- as.numeric()
     }
-    if(length(missing.mu)){
-        missing.vals <- poly_mat(mus[missing.mu], nus[has.nu])
-        # Need to be careful, nu has already poopulated this mu value.
-        out[missing.mu, has.nu] <- missing.vals
-        rownames(out)[missing.mu] <- .f(mus[missing.mu])
-    }
-    out
+    rtn
+
+    # Some way to add these to grid?
 }
 
-m2 <- runif(100, 0.98, 1.99); n2 <- runif(100, 1.22, 1.65)
-M2 <- grid.lookup(m2, n2)
-rm(m,m2,n,n2,M)
+# m2 <- runif(100, 0.98, 1.99); n2 <- runif(100, 1.22, 1.65)
+# grid.lookup(m2,n2)
+# rm(m,m2,n,n2,M)

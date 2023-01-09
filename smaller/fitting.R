@@ -1,3 +1,4 @@
+# `SMALL` version
 rm(list=ls())
 library(glmmTMB)
 library(hashmap)
@@ -23,12 +24,12 @@ summarydata <- function(y)
          sum_y = sum_y)
 }
 
-source('create-grid.R')
-source('create-hashmap.R')
+source('smaller/create-grid.R')
+source('smaller/create-hashmap.R')
 
-fit <- function(simdata, N = 1e3, lookup = 'hashmap'){
+fit <- function(simdata, N = 1e3, lookup = 'hashmap', CI = .95, verbose = TRUE){
 
-    if(lookup == 'hashmap') .lookup <- hash.lookup else .lookup <- grid.lookup2
+    if(lookup == 'hashmap') .lookup <- hash.lookup else .lookup <- grid.lookup
 
     f <- suppressWarnings(glmmTMB::glmmTMB(y ~ x1+x2+x3+x4+x5+x6+x7+x8+x9+x10 - 1, data = simdata,
                                            disp = ~ 1, family = glmmTMB::compois()))
@@ -43,12 +44,39 @@ fit <- function(simdata, N = 1e3, lookup = 'hashmap'){
     # Variance-covariance of MLEs
     V <- vcov(f,T)
     Sigma.beta <- V[1:10,1:10]
+    Vnu <- V[11,11]
+
+    # Setup grid (and hash) based on smaller subset.
+    p <- dim(X)[2]
+    upper.beta <- sapply(1:p, function(x) qnorm(1-((1 - CI)/2), beta.hat[x], sqrt(Sigma.beta[x,x])))
+    lower.beta <- sapply(1:p, function(x) qnorm((1 - CI)/2, beta.hat[x], sqrt(Sigma.beta[x,x])))
+    upper.nu <- qnorm(1-((1 - CI)/2), fixef(f)$disp, sqrt(Vnu))
+    lower.nu <- qnorm((1 - CI)/2, fixef(f)$disp, sqrt(Vnu))
+
+    # Work out grid values
+    mu.lower <- exp(X %*% lower.beta); mu.upper <- exp(X %*% upper.beta)
+    nu.lower <- exp(-upper.nu); nu.upper <- exp(-lower.nu)
+
+    mus.for.grid <- seq(.r(quantile(mu.lower)[2]), .r(quantile(mu.upper)[3]), by = 0.01)
+    if (max(mus.for.grid) >= 10){mus.for.grid <- pmin(9.99, mus.for.grid)}
+    if (min(mus.for.grid) < 0.01){mus.for.grid <- pmax(0.01, mus.for.grid)}
+    nus.for.grid <- seq(.r(nu.lower), .r(nu.upper), by = 0.01)
+    if(verbose){
+        cat(sprintf("Based on the %d%% confidencce interval for values of beta and nu,\n", 100 * CI))
+    #    cat(sprintf("Creating a %d x %d grid for mu x nu values.\n", length(mus.for.grid), length(nus.for.grid)))
+    }
+
+    M <<- generate.grid(mus.for.grid, nus.for.grid)
+    if(lookup == 'hashmap'){
+        HH <<- mat2hash(M)
+        if(verbose)
+            cat(sprintf("And created hashmap of size %d.\n", HH$size()))
+    }
 
     # Covariance matrix for proposal distribution
     Sigma.beta <- 0.7*Sigma.beta
 
     # Prior mean and variance for Beta
-    p <- dim(X)[2]
     mu0 <- rep(0,p)
     Sigma0 <- diag(p)*10^5
 
@@ -57,6 +85,7 @@ fit <- function(simdata, N = 1e3, lookup = 'hashmap'){
     mu0 <- exp(X %*% beta0)
     if (max(mu0) >= 10){mu0 <- pmin(9.99, mu0)}
     if (min(mu0) < 0.01){mu0 <- pmax(0.01, mu0)}
+
     # Initial value for nu
     nu0 <- nu.hat
 
@@ -128,12 +157,23 @@ fit <- function(simdata, N = 1e3, lookup = 'hashmap'){
 }
 
 # Below implies that as more grid lookups are done, hashmap becomes orders slower.
-a <- fit(data)
-b <- fit(data, lookup='grid')
+a <- fit(data, CI = .5)
+b <- fit(data, lookup='grid', CI = .5)
 cat(sprintf("Hashmap: %.2fs, grid: %.2fs.\n", a$cpu_time, b$cpu_time))
 
-a <- fit(data, N = 5e3)
-b <- fit(data, N = 5e3, lookup = 'grid')
-cat(sprintf("Hashmap: %.2fs, grid: %.2fs.\n", a$cpu_time, b$cpu_time))
-# Is this because the hashmap is so large?
-# Carry out some investigation into size of tables --> Does hashmap perform better if it's smaller?
+# A lot more draws
+# NB hash seems faster, this b/c grid doesn _not_ update if {nu, nu} not
+# found (I think).
+a2 <- fit(data, CI = .5, N = 5e3)
+b2 <- fit(data, CI = .5, N = 5e3, lookup = 'grid')
+
+cat(sprintf("Hashmap: %.2fs, grid: %.2fs.\n", a2$cpu_time, b2$cpu_time))
+apply(a2$paras, 2, mean); apply(a2$paras, 2, sd)
+apply(b2$paras, 2, mean); apply(b2$paras, 2, sd)
+
+# Create more data-points
+data2 <- simData1(n = 1000)
+data2 <- data2$data
+a2b <- fit(data2, CI = .5, N = 5e3)
+b2b <- fit(data2, CI = .5, N = 5e3, lookup = 'grid')
+cat(sprintf("Hashmap: %.2fs, grid: %.2fs.\n", a2b$cpu_time, b2b$cpu_time))
