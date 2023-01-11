@@ -39,13 +39,6 @@ grid.lookup <- function(mu, nu){
     M[mus,nus]
 }
 
-grid.lookup2 <- function(mu, nu){
-    l <- length(mu); k <- length(nu)
-    lam <- numeric(l)
-    mus <- round(mu, 2)*100; nus <- round(nu, 2) * 100
-    M[mus,nus]
-}
-
 hash.lookup <- function(mu, nu){
     # Not sure which of these we want to do.
     lookups <- paste0(.f(mu), ',', .f(nu))
@@ -61,7 +54,7 @@ dim(a); dim(b)
 # Create a scenario where we have N lookups to do (which are random numbers).
 library(microbenchmark)
 # Function
-benchN <- function(Nmu, Nnu, times = 1000){
+benchN <- function(Nmu, times = 1000, Nnu = 1L){
     mus <- runif(Nmu, 0.02, 9.99)
     nus <- runif(Nnu, 0.02, 9.99)
     bench <- microbenchmark(
@@ -75,5 +68,5 @@ benchN <- function(Nmu, Nnu, times = 1000){
     )
     bench
 }
-benchN(50000, 1, 1)
+benchN(1e3, 1e3)
 benchN(500, 2, 1000)
