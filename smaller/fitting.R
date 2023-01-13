@@ -10,6 +10,7 @@ library(mpcmp)
 # Loose idea of how may fit using a hashmap.
 source('smaller/create-grid.R')
 source('smaller/create-hashmap.R')
+source('simData.R')
 
 #### Function to extract some data summaries needed in updates
 summarydata <- function(y)
@@ -23,6 +24,8 @@ summarydata <- function(y)
     list(N = N, unique = unique, lfac = lfac, lfac_y = lfac_y, sum_lfac_y = sum_lfac_y,
          sum_y = sum_y)
 }
+
+simdata <- simData1()$data
 
 fit <- function(simdata, N = 1e3, lookup = 'hashmap', CI = .95, verbose = TRUE, update.grid = T){
 
@@ -106,7 +109,12 @@ fit <- function(simdata, N = 1e3, lookup = 'hashmap', CI = .95, verbose = TRUE, 
 
     for(i in 1:N){
         s <- proc.time()[3]
-        if(i %% 100 == 0) cat(sprintf("Iteration %d done\r", i))
+        if(lookup == 'hashmap'){
+            if(i %% 100 == 0) cat(sprintf("Iteration %d done, Hashmap size is now %d\r", i, HH$size()))
+        }else{
+            if(i %% 100 == 0) cat(sprintf("Iteration %d done, grid is now %d x %d\r", i, nrow(M), ncol(M)))
+        }
+            
 
         # Beta update
         beta1 <- rmvnorm(1, beta0, Sigma.beta)
@@ -156,8 +164,8 @@ fit <- function(simdata, N = 1e3, lookup = 'hashmap', CI = .95, verbose = TRUE, 
 }
 
 # Below implies that as more grid lookups are done, hashmap becomes orders slower.
-a <- fit(data, CI = .5)
-b <- fit(data, lookup='grid', CI = .5, update.grid = T)
+a <- fit(simdata, CI = .3)
+b <- fit(simdata, lookup='grid', CI = .3, update.grid = T)
 cat(sprintf("Hashmap: %.2fs, grid: %.2fs.\n", a$cpu_time, b$cpu_time))
 
 # A lot more draws
